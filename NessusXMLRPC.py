@@ -24,7 +24,7 @@ from httplib import HTTPSConnection,CannotSendRequest,ImproperConnectionState
 from urllib import urlencode
 from random import randint
 from time import sleep
-
+import urllib
 from exceptions import Exception
 
 # Arbitary minimum and maximum values for random sequence num
@@ -277,7 +277,7 @@ class Scanner:
         @param  seq:         A sequence number that will be echoed back for unique identification (optional).
         """
         policies = self.policyList()
-        if type(policies) is dict:
+        if type(policies['policy']) is dict:
             # There appears to be only one configured policy
             policy = policies['policy']
             if policy['policyName'] == policy_name:
@@ -286,12 +286,9 @@ class Scanner:
                 raise PolicyError( "Unable to parse policies from policyList()", (scan_name,target,policy_name))
         else:
             # We have multiple policies configured
-            policy_id = None
             for policy in policies:
                 if policy['policyName'] == policy_name:
                     policy_id = policy['policyID']
-            if policy_id is None:
-                raise PolicyError( "Unable to find policy", (scan_name,target,policy_name))
         return self.scanNew( scan_name, target, policy_id )
 
     def reportList( self, seq=randint(SEQMIN,SEQMAX)):
@@ -325,3 +322,27 @@ class Scanner:
         else:
             params = urlencode({'report':report})
         return self._request( "POST", "/file/report/download", params )
+
+    def pluginFamilyList(self,seq=randint(SEQMIN,SEQMAX)):
+
+	params      = urlencode({'seq':seq})
+        response    = self._request( "POST", "/plugins/list", params)
+        parsed      = self.parse( response )
+	
+	if parsed['status'] == "OK":
+            contents = parsed['contents']
+            #return contents['pluginFamilyList'] 	
+	    return response
+	else:
+	    raise ReportError("unable to list plugins")	
+    
+    def pluginList(self,plugin,seq=randint(SEQMIN,SEQMAX)):
+	plugin = urllib.pathname2url(plugin)
+        print "plugin: %s \n" % (plugin)
+	params	 = urlencode({'seq':seq})
+	params = params + "&family=" + plugin
+	print "params: %s \n" % (params)
+	response = self._request( "POST", "/plugin/list/family", params )
+#	parsed 	 = self.parse(response)
+ 
+	return response
